@@ -13,11 +13,11 @@ class CreateOwnerPasswordRests extends Migration
      */
     public function up()
     {
-        Schema::create('owner_password_rests', function (Blueprint $table) {
-            $table->string('email')->index();
-            $table->string('token');
-            $table->timestamp('created_at')->nullable();
-        });
+        // Schema::create('owner_password_rests', function (Blueprint $table) {
+        //     $table->string('email')->index();
+        //     $table->string('token');
+        //     $table->timestamp('created_at')->nullable();
+        // });
     }
 
     /**
