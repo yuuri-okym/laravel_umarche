@@ -4,26 +4,25 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\Owner; //エロクアント
-use Illuminate\Support\Facades\DB; //クエリビルダ
+use App\Models\Owner; // Eloquent エロクアント
+use App\Models\Shop;
+use Illuminate\Support\Facades\DB; // QueryBuilder クエリビルダ
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
 use Throwable;
-use App\Models\Shop;
+use Illuminate\Support\Facades\Log;
 
 class OwnersController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('auth:admin');        
-    }
+        $this->middleware('auth:admin');
+    } 
 
     public function index()
     {
         // $date_now = Carbon::now();
         // $date_parse = Carbon::parse(now());
-
         // echo $date_now->year;
         // echo $date_parse;
 
@@ -32,13 +31,14 @@ class OwnersController extends Controller
         // $q_first = DB::table('owners')->select('name')->first();
 
         // $c_test = collect([
-        //     'name' => 'テスト'
+        //     'name' => 'てすと'
         // ]);
 
-        // var_dump(($q_first));
-        // dd($e_all, $q_get, $q_first, $c_test);
+        // var_dump($q_first);
 
-        $owners = Owner::select('id', 'name', 'email', 'created_at')->paginate(3);
+        // dd($e_all, $q_get, $q_first, $c_test);
+        $owners = Owner::select('id', 'name', 'email', 'created_at')
+        ->paginate(3);
 
         return view('admin.owners.index', 
         compact('owners'));
@@ -64,13 +64,13 @@ class OwnersController extends Controller
     {
         //$request->name;
         $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:owners'],
-            'password' => ['required', 'confirmed', 'min:8'],
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:owners',
+            'password' => 'required|string|confirmed|min:8',
         ]);
 
         try{
-            DB::transaction(function() use($request) {
+            DB::transaction(function () use($request) {
                 $owner = Owner::create([
                     'name' => $request->name,
                     'email' => $request->email,
@@ -84,16 +84,11 @@ class OwnersController extends Controller
                     'filename' => '',
                     'is_selling' => true
                 ]);
-            },2);
-
+            }, 2);
         }catch(Throwable $e){
             Log::error($e);
             throw $e;
         }
-        
-        
-
-
 
         return redirect()
         ->route('admin.owners.index')
@@ -154,7 +149,7 @@ class OwnersController extends Controller
      */
     public function destroy($id)
     {
-        Owner::findOrFail($id)->delete();//ソフトデリート
+        Owner::findOrFail($id)->delete(); //ソフトデリート
 
         return redirect()
         ->route('admin.owners.index')
@@ -166,9 +161,9 @@ class OwnersController extends Controller
         $expiredOwners = Owner::onlyTrashed()->get();
         return view('admin.expired-owners', compact('expiredOwners'));
     }
-
+    
     public function expiredOwnerDestroy($id){
         Owner::onlyTrashed()->findOrFail($id)->forceDelete();
-        return redirect()->route('admin.expired-owners.index');
+        return redirect()->route('admin.expired-owners.index'); 
     }
 }
