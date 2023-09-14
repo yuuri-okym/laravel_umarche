@@ -9,7 +9,8 @@ use App\Models\User;
 use App\Models\Stock;
 use Illuminate\Support\Facades\Auth;
 use App\Services\CartService;
-
+use App\Jobs\SendThanksMail;
+use App\Jobs\SendOrderedMail;
 
 class CartController extends Controller
 {
@@ -25,8 +26,8 @@ class CartController extends Controller
 
         // dd($products, $totalPrice);
 
-        return view('user.cart',
-        compact('products', 'totalPrice'));
+        return view('user.cart', 
+            compact('products', 'totalPrice'));
     }
 
     public function add(Request $request)
@@ -35,11 +36,10 @@ class CartController extends Controller
         ->where('user_id', Auth::id())->first();
 
         if($itemInCart){
-
             $itemInCart->quantity += $request->quantity;
             $itemInCart->save();
 
-        }else {
+        } else {
             Cart::create([
                 'user_id' => Auth::id(),
                 'product_id' => $request->product_id,
@@ -50,7 +50,8 @@ class CartController extends Controller
         return redirect()->route('user.cart.index');
     }
 
-    public function delete($id) {
+    public function delete($id)
+    {
         Cart::where('product_id', $id)
         ->where('user_id', Auth::id())
         ->delete();
@@ -60,9 +61,6 @@ class CartController extends Controller
 
     public function checkout()
     {
-    
-        $items = Cart::where('user_id', Auth::id())->get();
-        $products = CartService::getItemsInCart($items);
         
 
         $user = User::findOrFail(Auth::id());
@@ -107,7 +105,7 @@ class CartController extends Controller
             'line_items' => [$lineItems],
             'mode' => 'payment',
             'success_url' => route('user.cart.success'),
-            'cancel_url' => route('user.cart.cancel'),
+            'cancel_url' => route('user.cart.index'),
         ]);
  
         $publicKey = env('STRIPE_PUBLIC_KEY');
@@ -117,6 +115,18 @@ class CartController extends Controller
 
     public function success()
     {
+        ////
+        $items = Cart::where('user_id', Auth::id())->get();
+        $products = CartService::getItemsInCart($items);
+        $user = User::findOrFail(Auth::id());
+
+        SendThanksMail::dispatch($products, $user);
+        foreach($products as $product)
+        {
+            SendOrderedMail::dispatch($product, $user);
+        }
+        // dd('ユーザーメール送信テスト');
+        ////
         Cart::where('user_id', Auth::id())->delete();
 
         return redirect()->route('user.items.index');
@@ -130,10 +140,10 @@ class CartController extends Controller
             Stock::create([
                 'product_id' => $product->id,
                 'type' => \Constant::PRODUCT_LIST['add'],
-                'quantity' => $product->pivot->quantity,
+                'quantity' => $product->pivot->quantity
             ]);
         }
- 
+
         return redirect()->route('user.cart.index');
     }
 }
